@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Health Risk & Emergency Response</title>
+    <base href="/demo/" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="badge">
+        AI Health Risk Prediction & Emergency Response — runs from Flask only (no Node). React UI
+        optional in <code>/frontend</code>.
+      </div>
+      <nav class="tabs" aria-label="Views">
+        <button type="button" class="tab active" data-tab="patient">Patient dashboard</button>
+        <button type="button" class="tab" data-tab="family">Family tracker</button>
+        <button type="button" class="tab" data-tab="doctor">Doctor / hospital</button>
+      </nav>
+
+      <div id="panel-patient">
+        <h1 style="margin: 0 0 0.5rem; font-size: 1.45rem">Patient monitoring</h1>
+        <p style="margin: 0 0 1rem; color: var(--muted)">
+          Simulated vitals → Flask API → scikit-learn risk score. Map uses OpenStreetMap + OSRM route.
+        </p>
+        <div id="api-err" class="card" style="display: none; border-color: var(--warn)"></div>
+        <div class="grid">
+          <div class="card"><div class="stat-label">Heart rate</div><div class="stat-value" id="v-hr">— <small>bpm</small></div></div>
+          <div class="card"><div class="stat-label">SpO₂</div><div class="stat-value" id="v-spo2">— <small>%</small></div></div>
+          <div class="card"><div class="stat-label">Temperature</div><div class="stat-value" id="v-temp">— <small>°C</small></div></div>
+          <div class="card" id="risk-card">
+            <div class="stat-label">AI risk score</div>
+            <div class="stat-value" id="v-risk">— <small>/ 100</small></div>
+            <div id="v-cat" style="margin-top: 0.35rem; font-weight: 600"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom: 1rem">
+          <h2 style="margin: 0 0 0.5rem; font-size: 1.1rem">Family emergency contact</h2>
+          <p style="margin: 0 0 0.75rem; color: var(--muted); font-size: 0.9rem">
+            International format with country code. The <strong>server sends WhatsApp automatically</strong>
+            (Twilio or Meta Cloud — configure env vars per <code>backend/WHATSAPP_SETUP.txt</code>). Family
+            tracker link: <span style="word-break: break-all" id="family-url-preview"></span>
+          </p>
+          <label class="family-phone-label" for="family-phone">Family phone (WhatsApp / SMS)</label>
+          <input
+            class="family-phone-input"
+            type="tel"
+            id="family-phone"
+            inputmode="tel"
+            autocomplete="tel"
+            placeholder="e.g. 919876543210"
+          />
+          <p class="family-phone-hint" id="family-phone-warn" style="display: none">
+            Add at least 10 digits (include country code) for WhatsApp/SMS.
+          </p>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn danger" id="btn-sim">Simulate emergency</button>
+          <button type="button" class="btn secondary" id="btn-resume">Resume normal simulation</button>
+        </div>
+        <p id="loc-note" style="font-size: 0.9rem; color: var(--muted)"></p>
+        <div class="card">
+          <h2 style="margin: 0 0 0.5rem; font-size: 1.1rem">Trends</h2>
+          <div id="chart-wrap"><canvas id="chart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2 style="margin: 0 0 0.5rem; font-size: 1.1rem">Map & route</h2>
+          <div id="map"></div>
+        </div>
+      </div>
+
+      <div id="panel-family" class="panel-hidden">
+        <h1 style="margin: 0 0 0.5rem; font-size: 1.45rem">Family tracker</h1>
+        <div class="card" id="family-status"></div>
+        <div class="card"><div id="map2"></div></div>
+      </div>
+
+      <div id="panel-doctor" class="panel-hidden">
+        <h1 style="margin: 0 0 0.5rem; font-size: 1.45rem">Hospital / doctor console</h1>
+        <div class="card" id="doctor-body"></div>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toasts" aria-live="polite"></div>
+    <div class="modal-backdrop" id="modal">
+      <div class="modal">
+        <h2>Emergency alert</h2>
+        <p id="modal-text"></p>
+        <p id="modal-sms" style="display: none; margin: 0 0 1rem; font-size: 0.9rem; color: var(--muted)"></p>
+        <div class="actions" style="margin-top: 1rem">
+          <button type="button" class="btn" id="modal-ok">Acknowledge</button>
+          <button type="button" class="btn secondary" id="modal-clear">Clear emergency demo</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
