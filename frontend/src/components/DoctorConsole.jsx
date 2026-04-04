@@ -6,63 +6,98 @@ export default function DoctorConsole() {
   const lng = location.longitude;
 
   return (
-    <div>
+    <div className="page-enter">
       <header style={{ marginBottom: "1.25rem" }}>
-        <h1 style={{ margin: "0 0 0.35rem", fontSize: "1.5rem" }}>Hospital / doctor console</h1>
-        <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.95rem" }}>
-          Simulated triage view: incoming emergency flag, vitals for prep, and patient coordinates.
-          Alerts are duplicated in toasts and console logs.
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.35rem" }}>
+          <h1 style={{ margin: 0, fontSize: "1.5rem" }}>Hospital Operations Center</h1>
+          <span className={`status-dot ${emergencyActive ? "danger" : ""}`} />
+          <span style={{ fontSize: "0.78rem", color: emergencyActive ? "var(--danger)" : "var(--muted)" }}>
+            {emergencyActive ? "EMERGENCY ACTIVE" : "Standby"}
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.88rem" }}>
+          Simulated triage view — incoming emergency flag, vitals for prep, and patient coordinates.
         </p>
       </header>
 
       <div className="card">
-        <h2 style={{ margin: "0 0 0.75rem", fontSize: "1.05rem" }}>Incoming patient</h2>
+        <div className="section-header">
+          <span className="icon">🚨</span>
+          Incoming Patient
+        </div>
+
         {emergencyActive ? (
-          <div
-            style={{
-              padding: "1rem",
-              borderRadius: "12px",
-              background: "rgba(245, 93, 93, 0.12)",
-              border: "1px solid var(--danger)",
-              marginBottom: "1rem",
-            }}
-          >
-            <strong style={{ color: "var(--danger)" }}>EMERGENCY — PATIENT INBOUND</strong>
-            <p style={{ margin: "0.5rem 0 0" }}>
+          <div className="emergency-banner">
+            <strong style={{ color: "var(--danger)", fontSize: "0.95rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              ⚠ Emergency — Patient Inbound
+            </strong>
+            <p style={{ margin: "0.6rem 0 0", lineHeight: 1.6 }}>
               Prepare resuscitation bay and oxygen. Model category:{" "}
-              <strong>{prediction?.category}</strong> (score {prediction?.risk_score}).
+              <strong style={{ color: "var(--text-bright)" }}>{prediction?.category}</strong>{" "}
+              <span style={{ color: "var(--muted)" }}>(score {prediction?.risk_score})</span>
             </p>
           </div>
         ) : (
-          <p style={{ color: "var(--muted)" }}>No active emergency alert.</p>
+          <div style={{
+            padding: "1.25rem",
+            borderRadius: "var(--radius-md)",
+            background: "rgba(255, 255, 255, 0.02)",
+            border: "1px solid var(--border)",
+            marginBottom: "1rem",
+            textAlign: "center",
+            color: "var(--muted)",
+          }}>
+            <span style={{ fontSize: "1.5rem", display: "block", marginBottom: "0.5rem", opacity: 0.5 }}>🛡️</span>
+            No active emergency alert — systems nominal
+          </div>
         )}
 
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.95rem" }}>
+        <table className="data-table">
           <tbody>
-            <tr style={{ borderBottom: "1px solid var(--border)" }}>
-              <td style={{ padding: "0.5rem 0", color: "var(--muted)" }}>Heart rate</td>
-              <td style={{ padding: "0.5rem 0", fontWeight: 600 }}>{vitals.heart_rate} bpm</td>
+            <tr>
+              <td>Heart Rate</td>
+              <td style={{ color: vitals.heart_rate > 120 ? "var(--danger)" : "var(--text-bright)" }}>
+                {vitals.heart_rate} <span style={{ color: "var(--muted)", fontWeight: 400 }}>bpm</span>
+              </td>
             </tr>
-            <tr style={{ borderBottom: "1px solid var(--border)" }}>
-              <td style={{ padding: "0.5rem 0", color: "var(--muted)" }}>SpO₂</td>
-              <td style={{ padding: "0.5rem 0", fontWeight: 600 }}>{vitals.spo2}%</td>
+            <tr>
+              <td>SpO₂</td>
+              <td style={{ color: vitals.spo2 < 90 ? "var(--danger)" : "var(--text-bright)" }}>
+                {vitals.spo2}<span style={{ color: "var(--muted)", fontWeight: 400 }}>%</span>
+              </td>
             </tr>
-            <tr style={{ borderBottom: "1px solid var(--border)" }}>
-              <td style={{ padding: "0.5rem 0", color: "var(--muted)" }}>Temperature</td>
-              <td style={{ padding: "0.5rem 0", fontWeight: 600 }}>{vitals.temperature_c} °C</td>
+            <tr>
+              <td>Temperature</td>
+              <td style={{ color: vitals.temperature_c > 38.5 ? "var(--danger)" : "var(--text-bright)" }}>
+                {vitals.temperature_c} <span style={{ color: "var(--muted)", fontWeight: 400 }}>°C</span>
+              </td>
             </tr>
-            <tr style={{ borderBottom: "1px solid var(--border)" }}>
-              <td style={{ padding: "0.5rem 0", color: "var(--muted)" }}>ETA reference</td>
-              <td style={{ padding: "0.5rem 0", fontWeight: 600 }}>
-                Live GPS: {lat != null && lng != null ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "—"}
+            <tr>
+              <td>Risk Assessment</td>
+              <td>
+                {prediction ? (
+                  <span className={`badge ${prediction.category === "High Risk" ? "danger" : prediction.category === "Warning" ? "warning" : "success"}`}>
+                    {prediction.category} — {prediction.risk_score}
+                  </span>
+                ) : (
+                  <span style={{ color: "var(--muted)" }}>Awaiting data…</span>
+                )}
+              </td>
+            </tr>
+            <tr>
+              <td>GPS Coordinates</td>
+              <td>
+                {lat != null && lng != null
+                  ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+                  : "—"}
               </td>
             </tr>
           </tbody>
         </table>
 
-        <p style={{ marginTop: "1rem", fontSize: "0.85rem", color: "var(--muted)" }}>
+        <p style={{ marginTop: "1.25rem", fontSize: "0.78rem", color: "var(--muted-dim)" }}>
           Open DevTools → Console to see structured alert payloads logged as{" "}
-          <code>[EMERGENCY — Doctor/Hospital]</code>.
+          <code style={{ color: "var(--neon-cyan)", fontSize: "0.75rem" }}>[EMERGENCY — Doctor/Hospital]</code>.
         </p>
       </div>
     </div>

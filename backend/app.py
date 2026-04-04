@@ -67,10 +67,12 @@ def api_predict():
         hr = float(data.get("heart_rate", 72))
         spo2 = float(data.get("spo2", 98))
         temp = float(data.get("temperature_c", 36.8))
+        med_hist = float(data.get("medical_history", 0.0))
+        life_score = float(data.get("lifestyle_score", 5.0))
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid numeric vitals"}), 400
 
-    result = predict_risk(hr, spo2, temp)
+    result = predict_risk(hr, spo2, temp, med_hist, life_score)
     if get_model_backend() == "random-forest":
         result["model"] = "RandomForestClassifier (synthetic training)"
     else:

@@ -13,6 +13,12 @@ import {
   getFamilyTrackerUrl,
 } from "../utils/familyNotify.js";
 
+import {
+  generateRecommendations,
+  generateDailySummary,
+  PRIORITY,
+} from "../utils/recommendationEngine.js";
+
 const HealthContext = createContext(null);
 
 const FAMILY_PHONE_KEY = "lifeguard_family_phone";
@@ -35,6 +41,8 @@ async function fetchPredict(vitals) {
       heart_rate: vitals.heart_rate,
       spo2: vitals.spo2,
       temperature_c: vitals.temperature_c,
+      medical_history: vitals.medical_history,
+      lifestyle_score: vitals.lifestyle_score,
     }),
   });
   if (!res.ok) throw new Error(await res.text());
@@ -85,6 +93,8 @@ export function HealthProvider({ children }) {
     heart_rate: 74,
     spo2: 98,
     temperature_c: 36.7,
+    medical_history: 0,
+    lifestyle_score: 8,
   });
   const [prediction, setPrediction] = useState(null);
   const [location, setLocation] = useState({
@@ -107,11 +117,16 @@ export function HealthProvider({ children }) {
       return "";
     }
   });
+  const [recommendations, setRecommendations] = useState([]);
+  const [activePopup, setActivePopup] = useState(null);
+  const [snoozedIds, setSnoozedIds] = useState({});
+  const [dailySummary, setDailySummary] = useState(null);
   const forceAbnormal = useRef(false);
   const tick = useRef(0);
   const wasHighRisk = useRef(false);
   const familyPhoneRef = useRef(familyPhone);
   familyPhoneRef.current = familyPhone;
+  const popupQueue = useRef([]);
 
   const setFamilyPhone = useCallback((value) => {
     setFamilyPhoneState(value);
@@ -250,6 +265,58 @@ export function HealthProvider({ children }) {
     [pushToast]
   );
 
+  const processRecommendations = useCallback((vit, pred) => {
+    const recs = generateRecommendations(vit, pred);
+    setRecommendations(recs);
+
+    // Queue popup for the highest-priority recommendation that wants one
+    const now = Date.now();
+    const popupRec = recs.find(
+      (r) => r.popup && r.priority >= PRIORITY.HIGH && !snoozedIds[r.id]
+    );
+    if (popupRec && (!activePopup || activePopup.id !== popupRec.id)) {
+      setActivePopup(popupRec);
+    } else if (!popupRec) {
+      setActivePopup(null);
+    }
+  }, [snoozedIds, activePopup]);
+
+  const dismissPopup = useCallback(() => {
+    setActivePopup(null);
+  }, []);
+
+  const snoozePopup = useCallback(() => {
+    if (activePopup) {
+      const id = activePopup.id;
+      setSnoozedIds((prev) => ({ ...prev, [id]: Date.now() + 5 * 60 * 1000 }));
+      setActivePopup(null);
+    }
+  }, [activePopup]);
+
+  // Clean expired snoozes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setSnoozedIds((prev) => {
+        const next = { ...prev };
+        let changed = false;
+        for (const id in next) {
+          if (next[id] <= now) {
+            delete next[id];
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const refreshDailySummary = useCallback(() => {
+    const s = generateDailySummary(hrHistory, riskHistory, vitals, prediction);
+    setDailySummary(s);
+  }, [hrHistory, riskHistory, vitals, prediction]);
+
   const predictAndReact = useCallback(
     async (vit, locSnapshot) => {
       try {
@@ -259,6 +326,9 @@ export function HealthProvider({ children }) {
         const t = tick.current++;
         setHrHistory((h) => [...h.slice(-59), { t, hr: vit.heart_rate }]);
         setRiskHistory((h) => [...h.slice(-59), { t, risk: pred.risk_score }]);
+
+        // Process AI recommendations
+        processRecommendations(vit, pred);
 
         if (pred.category === "High Risk") {
           if (!wasHighRisk.current) {
@@ -277,7 +347,7 @@ export function HealthProvider({ children }) {
         console.error(e);
       }
     },
-    [runEmergencySideEffects]
+    [runEmergencySideEffects, processRecommendations]
   );
 
   useEffect(() => {
@@ -311,12 +381,14 @@ export function HealthProvider({ children }) {
         let next = { ...v };
         if (forceAbnormal.current) {
           next = {
+            ...next,
             heart_rate: 130,
             spo2: 85,
             temperature_c: 38.9,
           };
         } else {
           next = {
+            ...next,
             heart_rate: Math.round(randomWalk(v.heart_rate, 4, 58, 105)),
             spo2: Math.round(randomWalk(v.spo2, 0.8, 94, 100) * 10) / 10,
             temperature_c:
@@ -337,15 +409,18 @@ export function HealthProvider({ children }) {
   const simulateEmergency = useCallback(() => {
     wasHighRisk.current = false;
     forceAbnormal.current = true;
-    const vit = {
-      heart_rate: 130,
-      spo2: 85,
-      temperature_c: 39.1,
-    };
-    setVitals(vit);
-    predictAndReact(vit, {
-      latitude: location.latitude ?? 40.7128,
-      longitude: location.longitude ?? -74.006,
+    setVitals((v) => {
+      const vit = {
+        ...v,
+        heart_rate: 130,
+        spo2: 85,
+        temperature_c: 39.1,
+      };
+      predictAndReact(vit, {
+        latitude: location.latitude ?? 40.7128,
+        longitude: location.longitude ?? -74.006,
+      });
+      return vit;
     });
   }, [predictAndReact, location.latitude, location.longitude]);
 
@@ -375,6 +450,14 @@ export function HealthProvider({ children }) {
     setFamilyPhone,
     simulateEmergency,
     resumeSimulation,
+    setVitals,
+    // AI Recommendations
+    recommendations,
+    activePopup,
+    dismissPopup,
+    snoozePopup,
+    dailySummary,
+    refreshDailySummary,
   };
 
   return (
