@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function DailySummary({ summary, onClose }) {
+export default function DailySummary({ summary, onOpen, onClose }) {
   const [open, setOpen] = useState(false);
 
   if (!summary) return null;
@@ -11,7 +11,10 @@ export default function DailySummary({ summary, onClose }) {
       <button
         type="button"
         className="secondary"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (onOpen) onOpen();
+          setOpen(true);
+        }}
         style={{ marginBottom: "1rem", fontSize: "0.8rem" }}
       >
         📊 View Session Summary

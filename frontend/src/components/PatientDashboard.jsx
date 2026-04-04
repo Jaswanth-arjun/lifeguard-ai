@@ -9,6 +9,9 @@ import {
   getFamilyTrackerUrl,
   getSmsUri,
 } from "../utils/familyNotify.js";
+import HealthRecommendations from "./HealthRecommendations.jsx";
+import RecommendationPopup from "./RecommendationPopup.jsx";
+import DailySummary from "./DailySummary.jsx";
 
 function riskColor(category) {
   if (category === "High Risk") return "var(--danger)";
@@ -45,6 +48,12 @@ export default function PatientDashboard() {
     setFamilyPhone,
     simulateEmergency,
     resumeSimulation,
+    recommendations,
+    activePopup,
+    dismissPopup,
+    snoozePopup,
+    dailySummary,
+    refreshDailySummary,
   } = useHealth();
 
   const lat = location.latitude;
@@ -150,6 +159,9 @@ export default function PatientDashboard() {
           />
         </div>
       </div>
+
+      {/* ── Health Recommendations ── */}
+      <HealthRecommendations recommendations={recommendations} />
 
       {/* ── Medical History & Lifestyle Sliders ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
@@ -258,6 +270,7 @@ export default function PatientDashboard() {
         <button type="button" className="secondary" onClick={resumeSimulation}>
           ↻ Resume Normal
         </button>
+        <DailySummary summary={dailySummary} onOpen={refreshDailySummary} />
       </div>
 
       {/* ── Location Note ── */}
@@ -326,6 +339,13 @@ export default function PatientDashboard() {
           </div>
         </div>
       )}
+
+      {/* ── Recommendation Popup ── */}
+      <RecommendationPopup
+        recommendation={activePopup}
+        onDismiss={dismissPopup}
+        onSnooze={snoozePopup}
+      />
     </div>
   );
 }
