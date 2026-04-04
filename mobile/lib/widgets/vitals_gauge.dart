@@ -32,29 +32,30 @@ class VitalsGauge extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Outer Glow
+              // Outer Ambient Glow
               Container(
-                width: 120,
-                height: 120,
+                width: 110,
+                height: 110,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: glowColor.withOpacity(0.15),
-                      blurRadius: 30,
-                      spreadRadius: 5,
+                      color: glowColor.withOpacity(0.1),
+                      blurRadius: 40,
+                      spreadRadius: 8,
                     ),
                   ],
                 ),
               ),
               // Gauge Painter
               CustomPaint(
-                size: const Size(120, 120),
+                size: const Size(110, 110),
                 painter: _GaugePainter(
                   value: value,
                   min: min,
                   max: max,
                   color: color,
+                  glowColor: glowColor,
                 ),
               ),
               // Value Text
@@ -64,12 +65,12 @@ class VitalsGauge extends StatelessWidget {
                   Text(
                     value.toStringAsFixed(value < 100 ? 1 : 0),
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                       fontFamily: 'Outfit',
                       shadows: [
-                        Shadow(color: glowColor.withOpacity(0.5), blurRadius: 10),
+                        Shadow(color: glowColor.withOpacity(0.6), blurRadius: 15),
                       ],
                     ),
                   ),
@@ -78,8 +79,8 @@ class VitalsGauge extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.white.withOpacity(0.5),
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
                     ),
                   ),
                 ],
@@ -87,14 +88,14 @@ class VitalsGauge extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: Colors.white.withOpacity(0.6),
-            letterSpacing: 1.5,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: Colors.white.withOpacity(0.4),
+            letterSpacing: 1.8,
           ),
         ),
       ],
@@ -107,50 +108,67 @@ class _GaugePainter extends CustomPainter {
   final double min;
   final double max;
   final Color color;
+  final Color glowColor;
 
   _GaugePainter({
     required this.value,
     required this.min,
     required this.max,
     required this.color,
+    required this.glowColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
-    const strokeWidth = 10.0;
+    const strokeWidth = 11.0;
 
-    // Background track
+    // Background track (Abyss blue glass)
     final paintBase = Paint()
-      ..color = Colors.white.withOpacity(0.06)
+      ..color = const Color(0xFF0C142A).withOpacity(0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      0.7 * pi,
-      1.6 * pi,
+      0.75 * pi,
+      1.5 * pi,
       false,
       paintBase,
     );
 
     // Active track
     final progress = (value - min) / (max - min);
+    
+    // Layer 1: Glow
+    final paintGlow = Paint()
+      ..color = glowColor.withOpacity(0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth + 4
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      0.75 * pi,
+      (1.5 * pi) * progress.clamp(0.01, 1.0),
+      false,
+      paintGlow,
+    );
+
+    // Layer 2: Solid core
     final paintActive = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
-    // Add glow effect to stroke
-    paintActive.maskFilter = MaskFilter.blur(BlurStyle.solid, 4);
-
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      0.7 * pi,
-      (1.6 * pi) * progress.clamp(0.0, 1.0),
+      0.75 * pi,
+      (1.5 * pi) * progress.clamp(0.01, 1.0),
       false,
       paintActive,
     );

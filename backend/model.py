@@ -97,11 +97,22 @@ def ensure_model() -> Any:
         return None
 
     if MODEL_PATH.exists():
-        MODEL_BACKEND = "random-forest"
-        return joblib.load(MODEL_PATH)
+        try:
+            loaded = joblib.load(MODEL_PATH)
+            MODEL_BACKEND = "random-forest"
+            return loaded
+        except Exception:
+            # Serialized model may be incompatible with local sklearn/numpy.
+            # Fall back to heuristics so the API remains available.
+            MODEL_BACKEND = "heuristic-fallback"
+            return None
 
-    MODEL_BACKEND = "random-forest"
-    return _train_and_save()
+    try:
+        MODEL_BACKEND = "random-forest"
+        return _train_and_save()
+    except Exception:
+        MODEL_BACKEND = "heuristic-fallback"
+        return None
 
 
 def get_model_backend() -> str:

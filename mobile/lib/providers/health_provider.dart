@@ -27,9 +27,16 @@ class HealthProvider with ChangeNotifier {
   Timer? _timer;
   final _random = Random();
 
-  // API Configuration - Adjust host for Emulator/Device
-  // 10.0.2.2 is the special alias to your host loopback interface (127.0.0.1 on your development machine)
-  final String _baseUrl = "http://10.0.2.2:5000/api";
+  static const String _apiFromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+
+  // API configuration:
+  // - Web/desktop: localhost
+  // - Android emulator: 10.0.2.2 (host loopback)
+  // - Override for any target: --dart-define=API_BASE_URL=http://host:5000/api
+  String get _baseUrl {
+    if (_apiFromEnv.isNotEmpty) return _apiFromEnv;
+    return kIsWeb ? "http://127.0.0.1:5000/api" : "http://10.0.2.2:5000/api";
+  }
 
   HealthProvider() {
     _startSimulation();

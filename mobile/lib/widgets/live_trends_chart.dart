@@ -14,25 +14,25 @@ class LiveTrendsChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (hrHistory.isEmpty) {
-      return const Center(child: Text("Waiting for data..."));
+      return const Center(child: Text("Waiting for data monitor..."));
     }
 
     return AspectRatio(
-      aspectRatio: 2.2,
+      aspectRatio: 1.8,
       child: LineChart(
         LineChartData(
           gridData: FlGridData(
             show: true,
             drawVerticalLine: true,
-            horizontalInterval: 20,
+            horizontalInterval: 25,
             verticalInterval: 10,
             getDrawingHorizontalLine: (value) => FlLine(
               color: Colors.white.withOpacity(0.04),
-              strokeWidth: 1,
+              strokeWidth: 0.5,
             ),
             getDrawingVerticalLine: (value) => FlLine(
               color: Colors.white.withOpacity(0.02),
-              strokeWidth: 1,
+              strokeWidth: 0.5,
             ),
           ),
           titlesData: FlTitlesData(
@@ -44,10 +44,10 @@ class LiveTrendsChart extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 interval: 25,
-                reservedSize: 32,
+                reservedSize: 28,
                 getTitlesWidget: (value, meta) => Text(
                   value.toInt().toString(),
-                  style: const TextStyle(fontSize: 9, color: Colors.white24),
+                  style: const TextStyle(fontSize: 8, color: Colors.white24, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -64,20 +64,26 @@ class LiveTrendsChart extends StatelessWidget {
                 return FlSpot(e.key.toDouble(), e.value.toDouble());
               }).toList(),
               isCurved: true,
+              curveSmoothness: 0.35,
               color: const Color(0xFF00F0FF),
-              barWidth: 2,
+              barWidth: 2.2,
               isStrokeCapRound: true,
               dotData: const FlDotData(show: false),
               belowBarData: BarAreaData(
                 show: true,
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFF00F0FF).withOpacity(0.15),
-                    const Color(0xFF00F0FF).withOpacity(0),
+                    const Color(0xFF00F0FF).withOpacity(0.12),
+                    const Color(0xFF00F0FF).withOpacity(0.01),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
+              ),
+              shadow: const Shadow(
+                color: Color(0x6600F0FF),
+                blurRadius: 8,
+                offset: Offset(0, 0),
               ),
             ),
             // Heart Rate Line (Muted White)
@@ -86,7 +92,8 @@ class LiveTrendsChart extends StatelessWidget {
                 return FlSpot(e.key.toDouble(), e.value);
               }).toList(),
               isCurved: true,
-              color: Colors.white.withOpacity(0.35),
+              curveSmoothness: 0.35,
+              color: Colors.white.withOpacity(0.25),
               barWidth: 1.5,
               isStrokeCapRound: true,
               dotData: const FlDotData(show: false),
