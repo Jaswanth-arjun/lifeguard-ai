@@ -73,6 +73,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+
+  /* Safe Area Support (for mobile) */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 #root {
@@ -847,6 +853,7 @@ input[type="tel"]:focus {
 
 .dashboard-header {
   margin-bottom: var(--space-sm);
+  padding-top: max(var(--space-xs), env(safe-area-inset-top));
 }
 
 .dashboard-header .header-top {

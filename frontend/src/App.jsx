@@ -5,6 +5,7 @@ import PatientDashboard from "./components/PatientDashboard.jsx";
 import FamilyTracker from "./components/FamilyTracker.jsx";
 import DoctorConsole from "./components/DoctorConsole.jsx";
 import ParticleBackground from "./components/ParticleBackground.jsx";
+import { NotificationService } from "./utils/notificationService.js";
 import {
   BrowserRouter,
   Routes,
@@ -79,6 +80,11 @@ function GlobalHeader() {
 }
 
 export default function App() {
+  useEffect(() => {
+    // Request notification permissions on mount
+    NotificationService.requestPermissions();
+  }, []);
+
   return (
     <BrowserRouter>
       <HashRedirect />

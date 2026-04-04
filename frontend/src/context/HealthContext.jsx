@@ -18,6 +18,7 @@ import {
   generateDailySummary,
   PRIORITY,
 } from "../utils/recommendationEngine.js";
+import { NotificationService } from "../utils/notificationService.js";
 
 const HealthContext = createContext(null);
 
@@ -164,8 +165,10 @@ export function HealthProvider({ children }) {
       const hid = `patient-${Date.now()}`;
       pushToast(hid, "patient", "Patient alert", "Check on-screen emergency instructions.");
 
+      let h = null;
       try {
-        const { hospital: h } = await fetchNearestHospital(lat, lng);
+        const { hospital: nearest } = await fetchNearestHospital(lat, lng);
+        h = nearest;
         setHospital(h);
         let route = null;
         if (h) {
@@ -180,17 +183,26 @@ export function HealthProvider({ children }) {
         setRouteCoords(route);
       } catch (e) {
         console.warn("Hospital/route fetch failed", e);
-        setHospital({
+        h = {
           name: "Nearest Hospital (offline mock)",
           latitude: lat + 0.02,
           longitude: lng + 0.02,
           approx_distance_km: 2.5,
-        });
+        };
+        setHospital(h);
         setRouteCoords([
           [lat, lng],
           [lat + 0.02, lng + 0.02],
         ]);
       }
+
+      // Trigger Native Notification för Patient
+      const hospitalName = h?.name || "the nearest hospital";
+      NotificationService.schedule(
+        "🚨 Emergency Alert",
+        `High risk detected! HR: ${vit.heart_rate} BPM. Seek immediate care at ${hospitalName}.`,
+        { type: "emergency", vitals: vit, pred }
+      );
 
       const ts = Date.now();
       const phoneRaw = familyPhoneRef.current?.trim() ?? "";
@@ -276,6 +288,13 @@ export function HealthProvider({ children }) {
     );
     if (popupRec && (!activePopup || activePopup.id !== popupRec.id)) {
       setActivePopup(popupRec);
+      
+      // Trigger Native Notification for Suggestion
+      NotificationService.schedule(
+        `Health Suggestion: ${popupRec.title}`,
+        popupRec.message,
+        { type: "suggestion", recId: popupRec.id }
+      );
     } else if (!popupRec) {
       setActivePopup(null);
     }

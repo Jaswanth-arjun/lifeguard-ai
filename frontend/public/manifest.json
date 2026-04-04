@@ -1,0 +1,17 @@
+{
+  "name": "Lifeguard AI — Advanced Health Monitoring",
+  "short_name": "Lifeguard AI",
+  "description": "Real-time health risk prediction and emergency coordination.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030711",
+  "theme_color": "#030711",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
