@@ -78,22 +78,24 @@ export default function PatientDashboard() {
   const cat = prediction?.category ?? "Normal";
 
   return (
-    <div className="page-enter">
+    <div className="page-enter dashboard-container">
       {/* ── Header ── */}
-      <header style={{ marginBottom: "0.5rem" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.35rem" }}>
-          <h1 style={{ margin: 0, fontSize: "1.5rem" }}>Patient Monitoring</h1>
+      <header className="dashboard-header animate-in">
+        <div className="header-top">
+          <h1 className="title">Patient Monitoring</h1>
           {prediction && (
             <span className={riskBadgeClass(cat)}>{cat}</span>
           )}
         </div>
-        <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.88rem" }}>
+        <p className="subtitle">
           Simulated wearable vitals update every 2.5s · ML risk runs on Flask backend (scikit-learn)
         </p>
       </header>
 
       {/* ── Heartbeat Line ── */}
-      <HeartbeatLine riskCategory={cat} />
+      <div className="animate-in delay-1">
+        <HeartbeatLine riskCategory={cat} />
+      </div>
 
       {/* ── API Error ── */}
       {lastError && (
@@ -104,14 +106,7 @@ export default function PatientDashboard() {
       )}
 
       {/* ── Vitals Gauges ── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          gap: "1rem",
-          marginBottom: "1rem",
-        }}
-      >
+      <div className="vitals-grid animate-in delay-2">
         <div className="card">
           <RadialGauge
             value={vitals.heart_rate}
@@ -164,31 +159,23 @@ export default function PatientDashboard() {
       <HealthRecommendations recommendations={recommendations} />
 
       {/* ── Medical History & Lifestyle Sliders ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
+      <div className="controls-grid animate-in delay-3">
         <div className="card">
           <div className="section-header">
             <span className="icon">📋</span>
             Medical History Severity
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.5rem" }}>
+          <div className="slider-control">
             <input
               type="range" min="0" max="10" step="1"
               value={vitals.medical_history ?? 0}
               onChange={(e) => setVitals(v => ({ ...v, medical_history: Number(e.target.value) }))}
-              style={{ flex: 1 }}
             />
-            <span style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontWeight: 700,
-              fontSize: "1.4rem",
-              color: "var(--text-bright)",
-              minWidth: "3.5rem",
-              textAlign: "right",
-            }}>
-              {vitals.medical_history ?? 0} <small style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 400 }}>/ 10</small>
+            <span className="slider-value">
+              {vitals.medical_history ?? 0} <small>/ 10</small>
             </span>
           </div>
-          <div style={{ marginTop: "0.5rem", fontSize: "0.78rem", color: "var(--muted-dim)" }}>
+          <div className="slider-hint">
             0 = No history · 10 = Severe chronic conditions
           </div>
         </div>
@@ -197,55 +184,39 @@ export default function PatientDashboard() {
             <span className="icon">🏃</span>
             Lifestyle Score
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.5rem" }}>
+          <div className="slider-control">
             <input
               type="range" min="0" max="10" step="1"
               value={vitals.lifestyle_score ?? 8}
               onChange={(e) => setVitals(v => ({ ...v, lifestyle_score: Number(e.target.value) }))}
-              style={{ flex: 1 }}
             />
-            <span style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontWeight: 700,
-              fontSize: "1.4rem",
-              color: "var(--text-bright)",
-              minWidth: "3.5rem",
-              textAlign: "right",
-            }}>
-              {vitals.lifestyle_score ?? 8} <small style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 400 }}>/ 10</small>
+            <span className="slider-value">
+              {vitals.lifestyle_score ?? 8} <small>/ 10</small>
             </span>
           </div>
-          <div style={{ marginTop: "0.5rem", fontSize: "0.78rem", color: "var(--muted-dim)" }}>
+          <div className="slider-hint">
             0 = Sedentary · 10 = Athletic lifestyle
           </div>
         </div>
       </div>
 
       {/* ── Family Emergency Contact ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
+      <div className="contact-grid animate-in delay-4">
         <div className="card">
           <div className="section-header">
             <span className="icon">📱</span>
             Emergency Contact
           </div>
-          <p style={{ margin: "0 0 0.75rem", color: "var(--muted)", fontSize: "0.82rem", lineHeight: 1.5 }}>
+          <p className="contact-hint">
             WhatsApp alert triggered automatically on emergency.
           </p>
           <input
             id="family-phone"
             type="tel"
             placeholder="e.g. 919876543210"
+            className="tel-input"
             value={familyPhone}
             onChange={(e) => setFamilyPhone(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.6rem 0.85rem",
-              borderRadius: "var(--radius-sm)",
-              border: "1px solid var(--border)",
-              background: "rgba(0, 0, 0, 0.3)",
-              color: "var(--text)",
-              fontSize: "0.9rem",
-            }}
           />
         </div>
 
@@ -254,16 +225,16 @@ export default function PatientDashboard() {
             <span className="icon">⚙️</span>
             Personalized Alert Thresholds
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>HR High Threshold</span>
-              <span style={{ fontSize: "0.85rem", color: "var(--neon-cyan)", fontWeight: 600 }}>110 BPM</span>
+          <div className="thresholds-list">
+            <div className="threshold-item">
+              <span className="label">HR High Threshold</span>
+              <span className="value">110 BPM</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>SpO₂ Low Threshold</span>
-              <span style={{ fontSize: "0.85rem", color: "var(--neon-cyan)", fontWeight: 600 }}>94 %</span>
+            <div className="threshold-item">
+              <span className="label">SpO₂ Low Threshold</span>
+              <span className="value">94 %</span>
             </div>
-            <p style={{ margin: "0.25rem 0 0", fontSize: "0.7rem", color: "var(--muted-dim)", fontStyle: "italic" }}>
+            <p className="threshold-hint">
               AI automatically adapts to these thresholds for recommendations.
             </p>
           </div>
@@ -271,7 +242,7 @@ export default function PatientDashboard() {
       </div>
 
       {/* ── Action Buttons ── */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1.25rem" }}>
+      <div className="actions-flex animate-in delay-4">
         <button type="button" className="danger" onClick={simulateEmergency}>
           ⚡ Simulate Emergency
         </button>

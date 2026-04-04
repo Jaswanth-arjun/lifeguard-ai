@@ -39,6 +39,13 @@
   --radius-md: 16px;
   --radius-lg: 24px;
   --radius-xl: 32px;
+
+  /* Spacing System */
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
 }
 
 /* ───────────────────────── RESET & BASE ───────────────────────── */
@@ -132,6 +139,9 @@ code, .mono {
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
   opacity: 0;
@@ -799,10 +809,150 @@ input[type="tel"]:focus {
   50% { transform: translateY(-8px); }
 }
 
-@keyframes rotateGlow {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+/* ───────────────────────── DASHBOARD LAYOUT ───────────────────────── */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-bottom: var(--space-xl);
 }
+
+.vitals-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.actions-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.dashboard-header {
+  margin-bottom: var(--space-sm);
+}
+
+.dashboard-header .header-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.dashboard-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+/* Slider Controls */
+.slider-control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.slider-value {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: var(--text-bright);
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+.slider-value small {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.slider-hint {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted-dim);
+}
+
+/* Contact & Thresholds */
+.contact-hint {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.tel-input {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.thresholds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.threshold-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.threshold-item .label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.threshold-item .value {
+  font-size: 0.85rem;
+  color: var(--neon-cyan);
+  font-weight: 600;
+}
+
+.threshold-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.7rem;
+  color: var(--muted-dim);
+  font-style: italic;
+}
+
+/* Entrance Animations */
+.animate-in {
+  animation: fadeInUp 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
 
 /* ───────────────────────── PAGE TRANSITIONS ───────────────────────── */
 .page-enter {
@@ -810,7 +960,21 @@ input[type="tel"]:focus {
 }
 
 /* ───────────────────────── RESPONSIVE ───────────────────────── */
-@media (max-width: 600px) {
+@media (max-width: 1024px) {
+  .vitals-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .controls-grid, .contact-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  header h1 {
+    font-size: 1.35rem !important;
+  }
+}
+
+@media (max-width: 768px) {
   .role-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -828,13 +992,24 @@ input[type="tel"]:focus {
   .glass-nav {
     padding: 0.6rem 0.9rem;
   }
+
+  .actions-flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card {
+    padding: 1.25rem;
+  }
 }
 
-@media (max-width: 480px) {
-  .toast-stack {
-    left: 0.5rem;
-    right: 0.5rem;
-    max-width: none;
+@media (max-width: 600px) {
+  .vitals-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hub-title {
+    font-size: 1.8rem;
   }
 }
 
