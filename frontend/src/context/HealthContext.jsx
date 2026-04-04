@@ -23,8 +23,13 @@ import { NotificationService } from "../utils/notificationService.js";
 const HealthContext = createContext(null);
 
 const FAMILY_PHONE_KEY = "lifeguard_family_phone";
+const API_BASE_KEY = "lifeguard_api_base";
+const API = "https://lifeguard-ai-arpd.onrender.com/api";
 
-const API = "/api";
+function apiFetch(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  return fetch(`${API}${path}`, { ...options, headers });
+}
 
 function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
@@ -35,7 +40,7 @@ function randomWalk(prev, delta, lo, hi) {
 }
 
 async function fetchPredict(vitals) {
-  const res = await fetch(`${API}/predict`, {
+  const res = await apiFetch(`/predict`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -51,7 +56,7 @@ async function fetchPredict(vitals) {
 }
 
 async function fetchNearestHospital(lat, lng) {
-  const res = await fetch(`${API}/nearest-hospital`, {
+  const res = await apiFetch(`/nearest-hospital`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ latitude: lat, longitude: lng }),
@@ -62,7 +67,7 @@ async function fetchNearestHospital(lat, lng) {
 
 /** OSRM public demo — free, no key. Falls back to straight line if blocked. */
 async function sendFamilyAlertCloud({ toPhone, message, latitude, longitude }) {
-  const res = await fetch(`${API}/send-family-alert`, {
+  const res = await apiFetch(`/send-family-alert`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -288,7 +293,7 @@ export function HealthProvider({ children }) {
     );
     if (popupRec && (!activePopup || activePopup.id !== popupRec.id)) {
       setActivePopup(popupRec);
-      
+
       // Trigger Native Notification for Suggestion
       NotificationService.schedule(
         `Health Suggestion: ${popupRec.title}`,
@@ -455,6 +460,7 @@ export function HealthProvider({ children }) {
   const value = {
     vitals,
     prediction,
+    apiBase: API,
     location,
     hospital,
     routeCoords,

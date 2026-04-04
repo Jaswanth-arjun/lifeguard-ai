@@ -159,5 +159,6 @@ def demo_static(filename):
 if __name__ == "__main__":
     _wa = cloud_whatsapp_status()
     print("\n  Dashboard (no Node required): http://127.0.0.1:5000/demo/")
+    print(f"  From Android device on same WiFi: http://192.168.0.192:5000/api/")
     print(f"  WhatsApp cloud sender: {_wa['mode']} (see backend/WHATSAPP_SETUP.txt)\n")
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
