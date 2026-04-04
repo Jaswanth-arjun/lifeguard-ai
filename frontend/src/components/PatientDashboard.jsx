@@ -222,44 +222,52 @@ export default function PatientDashboard() {
       </div>
 
       {/* ── Family Emergency Contact ── */}
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <div className="section-header">
-          <span className="icon">📱</span>
-          Family Emergency Contact
-        </div>
-        <p style={{ margin: "0 0 0.75rem", color: "var(--muted)", fontSize: "0.88rem", lineHeight: 1.6 }}>
-          Enter the family WhatsApp number in <strong style={{ color: "var(--text)" }}>international format</strong> (with country code).
-          On <strong style={{ color: "var(--text)" }}>Simulate Emergency</strong>, the server sends WhatsApp automatically.
-          Configure env vars per <code style={{ color: "var(--neon-cyan)", fontSize: "0.82rem" }}>backend/WHATSAPP_SETUP.txt</code>.
-        </p>
-        <label htmlFor="family-phone" style={{ display: "block", fontSize: "0.78rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.35rem" }}>
-          Family Phone (WhatsApp / SMS)
-        </label>
-        <input
-          id="family-phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="e.g. 919876543210"
-          value={familyPhone}
-          onChange={(e) => setFamilyPhone(e.target.value)}
-          style={{
-            width: "100%",
-            maxWidth: 340,
-            padding: "0.6rem 0.85rem",
-            borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--border)",
-            background: "rgba(0, 0, 0, 0.3)",
-            color: "var(--text)",
-            font: "inherit",
-            fontSize: "0.92rem",
-          }}
-        />
-        {phoneDigits.length > 0 && phoneDigits.length < 10 && (
-          <p style={{ margin: "0.5rem 0 0", fontSize: "0.82rem", color: "var(--warn)" }}>
-            ⚠ Add at least 10 digits (include country code) for WhatsApp/SMS.
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
+        <div className="card">
+          <div className="section-header">
+            <span className="icon">📱</span>
+            Emergency Contact
+          </div>
+          <p style={{ margin: "0 0 0.75rem", color: "var(--muted)", fontSize: "0.82rem", lineHeight: 1.5 }}>
+            WhatsApp alert triggered automatically on emergency.
           </p>
-        )}
+          <input
+            id="family-phone"
+            type="tel"
+            placeholder="e.g. 919876543210"
+            value={familyPhone}
+            onChange={(e) => setFamilyPhone(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "0.6rem 0.85rem",
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--border)",
+              background: "rgba(0, 0, 0, 0.3)",
+              color: "var(--text)",
+              fontSize: "0.9rem",
+            }}
+          />
+        </div>
+
+        <div className="card">
+          <div className="section-header">
+            <span className="icon">⚙️</span>
+            Personalized Alert Thresholds
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>HR High Threshold</span>
+              <span style={{ fontSize: "0.85rem", color: "var(--neon-cyan)", fontWeight: 600 }}>110 BPM</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>SpO₂ Low Threshold</span>
+              <span style={{ fontSize: "0.85rem", color: "var(--neon-cyan)", fontWeight: 600 }}>94 %</span>
+            </div>
+            <p style={{ margin: "0.25rem 0 0", fontSize: "0.7rem", color: "var(--muted-dim)", fontStyle: "italic" }}>
+              AI automatically adapts to these thresholds for recommendations.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* ── Action Buttons ── */}
