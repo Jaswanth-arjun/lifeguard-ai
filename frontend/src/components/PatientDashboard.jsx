@@ -12,6 +12,7 @@ import {
 import HealthRecommendations from "./HealthRecommendations.jsx";
 import RecommendationPopup from "./RecommendationPopup.jsx";
 import DailySummary from "./DailySummary.jsx";
+import logo from "../assets/logo.png";
 
 function riskColor(category) {
   if (category === "High Risk") return "var(--danger)";
@@ -44,6 +45,7 @@ export default function PatientDashboard() {
     hrHistory,
     riskHistory,
     lastError,
+    apiBase,
     familyPhone,
     setFamilyPhone,
     simulateEmergency,
@@ -63,12 +65,12 @@ export default function PatientDashboard() {
   const familyMsgForModal =
     prediction && lat != null && lng != null
       ? buildFamilyEmergencyMessage({
-          vitals,
-          pred: prediction,
-          lat,
-          lng,
-          trackerUrl,
-        })
+        vitals,
+        pred: prediction,
+        lat,
+        lng,
+        trackerUrl,
+      })
       : null;
   const smsUri =
     phoneDigits.length >= 10 && familyMsgForModal
@@ -82,7 +84,10 @@ export default function PatientDashboard() {
       {/* ── Header ── */}
       <header className="dashboard-header animate-in">
         <div className="header-top">
-          <h1 className="title">Patient Monitoring</h1>
+          <div className="header-brand">
+            <img src={logo} alt="Lifeguard AI" className="brand-logo" />
+            <h1 className="title">Lifeguard AI</h1>
+          </div>
           {prediction && (
             <span className={riskBadgeClass(cat)}>{cat}</span>
           )}
@@ -101,7 +106,9 @@ export default function PatientDashboard() {
       {lastError && (
         <div className="card" style={{ borderColor: "var(--warn)", marginBottom: "1rem" }}>
           <strong style={{ color: "var(--warn)" }}>⚠ API Error:</strong>{" "}
-          <span style={{ color: "var(--muted)" }}>{lastError}. Is the backend running on port 5000?</span>
+          <span style={{ color: "var(--muted)" }}>
+            {lastError}. Active API: {apiBase}. Is the backend reachable?
+          </span>
         </div>
       )}
 

@@ -1342,3 +1342,22 @@ input[type="tel"]:focus {
   opacity: 0.5;
   margin-left: 2px;
 }
+
+/* ───────────────────────── BRAND LOGO ───────────────────────── */
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.brand-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 25px var(--neon-cyan-glow), 0 0 50px rgba(0, 240, 250, 0.1);
+  border: 1px solid var(--border-bright);
+  object-fit: contain;
+  background: var(--bg-abyss);
+  padding: 4px;
+}
+
