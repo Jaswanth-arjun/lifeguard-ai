@@ -156,6 +156,30 @@ def demo_static(filename):
     return send_from_directory(STATIC_DEMO, filename)
 
 
+@app.route("/auth-confirm")
+def auth_confirm():
+    return """
+    <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body { font-family: sans-serif; background: #0b0f19; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; padding: 20px; }
+                .success { color: #00ffcc; font-size: 48px; margin-bottom: 20px; }
+                h1 { margin-bottom: 10px; }
+                p { color: #8fa3b8; line-height: 1.5; }
+                .btn { background: #00ffcc; color: black; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 30px; display: inline-block; }
+            </style>
+        </head>
+        <body>
+            <div class="success">✓</div>
+            <h1>Email Confirmed!</h1>
+            <p>Your Lifeguard AI account has been successfully verified.</p>
+            <p>You can now safely close this browser window and open the Lifeguard AI app on your phone to log in.</p>
+        </body>
+    </html>
+    """;
+
+
 if __name__ == "__main__":
     _wa = cloud_whatsapp_status()
     print("\n  Dashboard (no Node required): http://127.0.0.1:5000/demo/")
