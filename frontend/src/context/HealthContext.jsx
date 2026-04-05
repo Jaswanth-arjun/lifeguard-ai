@@ -11,6 +11,7 @@ import {
   buildFamilyEmergencyMessage,
   digitsOnlyPhone,
   getFamilyTrackerUrl,
+  openWhatsAppWithMessage,
 } from "../utils/familyNotify.js";
 
 import {
@@ -126,6 +127,7 @@ export function HealthProvider({ children }) {
   const [recommendations, setRecommendations] = useState([]);
   const [activePopup, setActivePopup] = useState(null);
   const [snoozedIds, setSnoozedIds] = useState({});
+  const [dismissedIds, setDismissedIds] = useState(new Set());
   const [dailySummary, setDailySummary] = useState(null);
   const forceAbnormal = useRef(false);
   const tick = useRef(0);
@@ -247,18 +249,24 @@ export function HealthProvider({ children }) {
             `Message sent automatically via ${cloud.provider || "cloud"}. ${ref ? `Ref: ${ref}. ` : ""}Tracker: ${trackerUrl}`
           );
         } else if (cloud.error === "not_configured") {
+          const opened = openWhatsAppWithMessage(toPhone, familyMsg);
           pushToast(
             `family-wa-${ts}`,
             "family",
-            "Cloud WhatsApp not configured",
-            `Server must set TWILIO_* or WHATSAPP_CLOUD_* env vars. See backend/WHATSAPP_SETUP.txt. Tracker link: ${trackerUrl}`
+            opened ? "Cloud WhatsApp not configured — fallback opened" : "Cloud WhatsApp not configured",
+            opened
+              ? `Cloud sender is not configured on server. Opened WhatsApp with prefilled emergency message; tap Send. Tracker: ${trackerUrl}`
+              : `Server must set TWILIO_* or WHATSAPP_CLOUD_* env vars. Could not open WhatsApp fallback. Tracker: ${trackerUrl}`
           );
         } else {
+          const opened = openWhatsAppWithMessage(toPhone, familyMsg);
           pushToast(
             `family-wa-${ts}`,
             "family",
-            "WhatsApp cloud send failed",
-            `${cloud.detail || cloud.error || "Error"}. Check server logs and Twilio/Meta console. Tracker: ${trackerUrl}`
+            opened ? "WhatsApp cloud send failed — fallback opened" : "WhatsApp cloud send failed",
+            opened
+              ? `${cloud.detail || cloud.error || "Error"}. Opened WhatsApp with prefilled message as fallback; tap Send. Tracker: ${trackerUrl}`
+              : `${cloud.detail || cloud.error || "Error"}. Check server logs and Twilio/Meta console. Tracker: ${trackerUrl}`
           );
         }
       } else {
@@ -289,7 +297,7 @@ export function HealthProvider({ children }) {
     // Queue popup for the highest-priority recommendation that wants one
     const now = Date.now();
     const popupRec = recs.find(
-      (r) => r.popup && r.priority >= PRIORITY.HIGH && !snoozedIds[r.id]
+      (r) => r.popup && r.priority >= PRIORITY.HIGH && !snoozedIds[r.id] && !dismissedIds.has(r.id)
     );
     if (popupRec && (!activePopup || activePopup.id !== popupRec.id)) {
       setActivePopup(popupRec);
@@ -303,11 +311,14 @@ export function HealthProvider({ children }) {
     } else if (!popupRec) {
       setActivePopup(null);
     }
-  }, [snoozedIds, activePopup]);
+  }, [snoozedIds, dismissedIds, activePopup]);
 
   const dismissPopup = useCallback(() => {
-    setActivePopup(null);
-  }, []);
+    if (activePopup) {
+      setDismissedIds((prev) => new Set(prev).add(activePopup.id));
+      setActivePopup(null);
+    }
+  }, [activePopup]);
 
   const snoozePopup = useCallback(() => {
     if (activePopup) {

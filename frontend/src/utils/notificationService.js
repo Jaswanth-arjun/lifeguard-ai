@@ -13,6 +13,17 @@ export const NotificationService = {
 
   async schedule(title, body, extraData = {}) {
     try {
+      // Prompt for permissions just-in-time if not already granted
+      let status = await LocalNotifications.checkPermissions();
+      if (status.display !== 'granted') {
+        status = await LocalNotifications.requestPermissions();
+      }
+      
+      if (status.display !== 'granted') {
+         console.warn('Cannot schedule notification: Permission denied.');
+         return;
+      }
+
       console.log('Scheduling notification:', title, body);
       await LocalNotifications.schedule({
         notifications: [

@@ -72,7 +72,34 @@ def send_via_twilio(
         return {"ok": True, "provider": "twilio", "message_sid": sid}
     except urllib.error.HTTPError as e:
         err_body = e.read().decode(errors="replace")
-        return {"ok": False, "provider": "twilio", "error": f"http_{e.code}", "detail": err_body[:500]}
+        twilio_code = None
+        twilio_message = None
+        try:
+            parsed = json.loads(err_body)
+            twilio_code = parsed.get("code")
+            twilio_message = parsed.get("message")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            pass
+
+        hint = None
+        if twilio_code == 21211:
+            hint = "Recipient number is invalid. Use full international format like +919876543210."
+        elif twilio_code in (63015, 63016):
+            hint = "Recipient may not be joined to Twilio WhatsApp sandbox. Ask family number to send the sandbox join code first."
+        elif twilio_code in (20003, 20404):
+            hint = "Twilio credentials or sender are invalid. Re-check TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_WHATSAPP_FROM."
+        elif twilio_code == 21608:
+            hint = "Permission to send to this destination is blocked. Verify geo permissions and WhatsApp sender approval in Twilio Console."
+
+        return {
+            "ok": False,
+            "provider": "twilio",
+            "error": f"http_{e.code}",
+            "detail": err_body[:500],
+            "twilio_code": twilio_code,
+            "twilio_message": twilio_message,
+            "hint": hint,
+        }
     except OSError as e:
         return {"ok": False, "provider": "twilio", "error": "network", "detail": str(e)}
 
@@ -114,6 +141,16 @@ def send_via_meta_cloud(
 
 
 def cloud_whatsapp_status() -> dict[str, Any]:
+    required_twilio = [
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_WHATSAPP_FROM",
+    ]
+    required_meta = [
+        "WHATSAPP_CLOUD_TOKEN",
+        "WHATSAPP_CLOUD_PHONE_NUMBER_ID",
+    ]
+
     twilio_ready = bool(
         os.environ.get("TWILIO_ACCOUNT_SID")
         and os.environ.get("TWILIO_AUTH_TOKEN")
@@ -129,7 +166,15 @@ def cloud_whatsapp_status() -> dict[str, Any]:
         mode = "meta_cloud"
     else:
         mode = "none"
-    return {"mode": mode, "twilio_configured": twilio_ready, "meta_configured": meta_ready}
+    missing_twilio = [k for k in required_twilio if not os.environ.get(k)]
+    missing_meta = [k for k in required_meta if not os.environ.get(k)]
+    return {
+        "mode": mode,
+        "twilio_configured": twilio_ready,
+        "meta_configured": meta_ready,
+        "missing_twilio": missing_twilio,
+        "missing_meta": missing_meta,
+    }
 
 
 def send_family_whatsapp_cloud(to_e164: str, body: str) -> dict[str, Any]:
@@ -149,8 +194,11 @@ def send_family_whatsapp_cloud(to_e164: str, body: str) -> dict[str, Any]:
     if wtoken and pnid:
         return send_via_meta_cloud(wtoken, pnid, to_e164, body)
 
+    status = cloud_whatsapp_status()
     return {
         "ok": False,
         "error": "not_configured",
         "hint": "Set TWILIO_* or WHATSAPP_CLOUD_* environment variables on the server.",
+        "missing_twilio": status.get("missing_twilio", []),
+        "missing_meta": status.get("missing_meta", []),
     }
