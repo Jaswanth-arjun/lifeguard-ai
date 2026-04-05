@@ -12,6 +12,7 @@ import {
 import HealthRecommendations from "./HealthRecommendations.jsx";
 import RecommendationPopup from "./RecommendationPopup.jsx";
 import DailySummary from "./DailySummary.jsx";
+import ConnectionManager from "./ConnectionManager.jsx";
 import logo from "../assets/logo.png";
 
 function riskColor(category) {
@@ -245,6 +246,11 @@ export default function PatientDashboard() {
               AI automatically adapts to these thresholds for recommendations.
             </p>
           </div>
+        </div>
+
+        {/* ── Supabase Connections ── */}
+        <div style={{ gridColumn: "1 / -1" }}>
+          <ConnectionManager />
         </div>
       </div>
 

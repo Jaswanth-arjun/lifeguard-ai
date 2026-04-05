@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 
+import { supabase } from "../supabaseClient.js";
 import {
   buildFamilyEmergencyMessage,
   digitsOnlyPhone,
@@ -96,6 +97,10 @@ async function fetchRoute(lat1, lng1, lat2, lng2) {
 }
 
 export function HealthProvider({ children }) {
+  const [role, setRole] = useState(null);
+  const [patientRecordId, setPatientRecordId] = useState(null);
+  const [userId, setUserId] = useState(null);
+
   const [vitals, setVitals] = useState({
     heart_rate: 74,
     spo2: 98,
@@ -136,6 +141,34 @@ export function HealthProvider({ children }) {
   familyPhoneRef.current = familyPhone;
   const popupQueue = useRef([]);
 
+  // Fetch Supabase Session and Role
+  useEffect(() => {
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      setUserId(session.user.id);
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile) setRole(profile.role);
+
+      // If patient, fetch their specific patients table ID (the primary key 'id')
+      if (profile?.role === 'patient') {
+        const { data: patientRecord } = await supabase
+          .from('patients')
+          .select('id')
+          .eq('profile_id', session.user.id)
+          .single();
+        if (patientRecord) setPatientRecordId(patientRecord.id);
+      }
+    };
+    initAuth();
+  }, []);
+
   const setFamilyPhone = useCallback((value) => {
     setFamilyPhoneState(value);
     try {
@@ -145,8 +178,8 @@ export function HealthProvider({ children }) {
     }
   }, []);
 
-  const pushToast = useCallback((id, role, title, body) => {
-    setToasts((t) => [...t, { id, role, title, body }]);
+  const pushToast = useCallback((id, msgRole, title, body) => {
+    setToasts((t) => [...t, { id, role: msgRole, title, body }]);
     setTimeout(() => {
       setToasts((t) => t.filter((x) => x.id !== id));
     }, 12000);
@@ -156,19 +189,7 @@ export function HealthProvider({ children }) {
     async (pred, vit, loc) => {
       const lat = loc.latitude ?? 40.7128;
       const lng = loc.longitude ?? -74.006;
-      console.log("[EMERGENCY — Patient] High risk detected. Seek immediate care.", {
-        vitals: vit,
-        risk: pred,
-        location: { lat, lng },
-      });
-      console.log("[EMERGENCY — Family] Patient condition critical. Live location:", lat, lng, pred?.category);
-      console.log("[EMERGENCY — Doctor/Hospital] Incoming emergency patient.", {
-        vitals: vit,
-        risk_score: pred?.risk_score,
-        category: pred?.category,
-        location: { lat, lng },
-      });
-
+      
       const hid = `patient-${Date.now()}`;
       pushToast(hid, "patient", "Patient alert", "Check on-screen emergency instructions.");
 
@@ -189,7 +210,6 @@ export function HealthProvider({ children }) {
         }
         setRouteCoords(route);
       } catch (e) {
-        console.warn("Hospital/route fetch failed", e);
         h = {
           name: "Nearest Hospital (offline mock)",
           latitude: lat + 0.02,
@@ -203,7 +223,7 @@ export function HealthProvider({ children }) {
         ]);
       }
 
-      // Trigger Native Notification för Patient
+      // Trigger Native Notification
       const hospitalName = h?.name || "the nearest hospital";
       NotificationService.schedule(
         "🚨 Emergency Alert",
@@ -211,83 +231,20 @@ export function HealthProvider({ children }) {
         { type: "emergency", vitals: vit, pred }
       );
 
-      const ts = Date.now();
-      const phoneRaw = familyPhoneRef.current?.trim() ?? "";
-      const phoneDigits = digitsOnlyPhone(phoneRaw);
-      const trackerUrl = getFamilyTrackerUrl();
-      const familyMsg = buildFamilyEmergencyMessage({
-        vitals: vit,
-        pred,
-        lat,
-        lng,
-        trackerUrl,
-      });
-
-      if (phoneDigits.length >= 10) {
-        const toPhone = phoneRaw.startsWith("+")
-          ? phoneRaw.replace(/\s/g, "")
-          : `+${phoneDigits}`;
-        let cloud = { ok: false, error: "unknown" };
-        try {
-          cloud = await sendFamilyAlertCloud({
-            toPhone,
-            message: familyMsg,
-            latitude: lat,
-            longitude: lng,
-          });
-        } catch (e) {
-          cloud = { ok: false, error: "browser_network", detail: String(e?.message || e) };
-        }
-        console.log("[Family — cloud WhatsApp]", cloud);
-
-        if (cloud.ok) {
-          const ref = cloud.message_sid || cloud.message_id || "";
-          pushToast(
-            `family-wa-${ts}`,
-            "family",
-            "Family notified (WhatsApp — cloud)",
-            `Message sent automatically via ${cloud.provider || "cloud"}. ${ref ? `Ref: ${ref}. ` : ""}Tracker: ${trackerUrl}`
-          );
-        } else if (cloud.error === "not_configured") {
-          const opened = openWhatsAppWithMessage(toPhone, familyMsg);
-          pushToast(
-            `family-wa-${ts}`,
-            "family",
-            opened ? "Cloud WhatsApp not configured — fallback opened" : "Cloud WhatsApp not configured",
-            opened
-              ? `Cloud sender is not configured on server. Opened WhatsApp with prefilled emergency message; tap Send. Tracker: ${trackerUrl}`
-              : `Server must set TWILIO_* or WHATSAPP_CLOUD_* env vars. Could not open WhatsApp fallback. Tracker: ${trackerUrl}`
-          );
-        } else {
-          const opened = openWhatsAppWithMessage(toPhone, familyMsg);
-          pushToast(
-            `family-wa-${ts}`,
-            "family",
-            opened ? "WhatsApp cloud send failed — fallback opened" : "WhatsApp cloud send failed",
-            opened
-              ? `${cloud.detail || cloud.error || "Error"}. Opened WhatsApp with prefilled message as fallback; tap Send. Tracker: ${trackerUrl}`
-              : `${cloud.detail || cloud.error || "Error"}. Check server logs and Twilio/Meta console. Tracker: ${trackerUrl}`
-          );
-        }
-      } else {
-        pushToast(
-          `family-${ts}`,
-          "family",
-          "Family phone missing",
-          `Add family number (country code, 10+ digits) to send WhatsApp from cloud. Status: ${pred?.category} (${pred?.risk_score}). GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}. Link: ${trackerUrl}`
-        );
+      // Insert into Supabase Alerts Table so family/doctors receive the push naturally
+      if (role === 'patient' && patientRecordId) {
+        await supabase.from('emergency_alerts').insert([{
+           patient_id: patientRecordId,
+           triggered_by: "high_risk_prediction",
+           severity: "critical",
+           status: "open"
+        }]);
       }
-      pushToast(
-        `doctor-${ts}`,
-        "doctor",
-        "Hospital / doctor alert (simulated)",
-        `Incoming emergency — HR ${vit.heart_rate}, SpO₂ ${vit.spo2}%, Temp ${vit.temperature_c}°C. Prepare bay.`
-      );
 
       setPatientModalOpen(true);
       setEmergencyActive(true);
     },
-    [pushToast]
+    [pushToast, role, patientRecordId]
   );
 
   const processRecommendations = useCallback((vit, pred) => {
@@ -295,14 +252,11 @@ export function HealthProvider({ children }) {
     setRecommendations(recs);
 
     // Queue popup for the highest-priority recommendation that wants one
-    const now = Date.now();
     const popupRec = recs.find(
       (r) => r.popup && r.priority >= PRIORITY.HIGH && !snoozedIds[r.id] && !dismissedIds.has(r.id)
     );
     if (popupRec && (!activePopup || activePopup.id !== popupRec.id)) {
       setActivePopup(popupRec);
-
-      // Trigger Native Notification for Suggestion
       NotificationService.schedule(
         `Health Suggestion: ${popupRec.title}`,
         popupRec.message,
@@ -328,7 +282,6 @@ export function HealthProvider({ children }) {
     }
   }, [activePopup]);
 
-  // Clean expired snoozes
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
@@ -362,7 +315,6 @@ export function HealthProvider({ children }) {
         setHrHistory((h) => [...h.slice(-59), { t, hr: vit.heart_rate }]);
         setRiskHistory((h) => [...h.slice(-59), { t, risk: pred.risk_score }]);
 
-        // Process AI recommendations
         processRecommendations(vit, pred);
 
         if (pred.category === "High Risk") {
@@ -377,9 +329,12 @@ export function HealthProvider({ children }) {
           setHospital(null);
           setRouteCoords(null);
         }
+        
+        return pred;
       } catch (e) {
         setLastError(String(e.message || e));
         console.error(e);
+        return null;
       }
     },
     [runEmergencySideEffects, processRecommendations]
@@ -410,54 +365,95 @@ export function HealthProvider({ children }) {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
+  // SENDER LOGIC: Patient creates simulation data and pushes to Supabase
   useEffect(() => {
-    const interval = setInterval(() => {
+    if (role !== 'patient' || !patientRecordId) return;
+
+    const interval = setInterval(async () => {
       setVitals((v) => {
         let next = { ...v };
         if (forceAbnormal.current) {
-          next = {
-            ...next,
-            heart_rate: 130,
-            spo2: 85,
-            temperature_c: 38.9,
-          };
+          next = { ...next, heart_rate: 130, spo2: 85, temperature_c: 38.9 };
         } else {
           next = {
             ...next,
             heart_rate: Math.round(randomWalk(v.heart_rate, 4, 58, 105)),
             spo2: Math.round(randomWalk(v.spo2, 0.8, 94, 100) * 10) / 10,
-            temperature_c:
-              Math.round(randomWalk(v.temperature_c, 0.12, 36.2, 37.8) * 10) / 10,
+            temperature_c: Math.round(randomWalk(v.temperature_c, 0.12, 36.2, 37.8) * 10) / 10,
           };
         }
-        const loc = {
-          latitude: location.latitude,
-          longitude: location.longitude,
-        };
-        predictAndReact(next, loc);
+        const loc = { latitude: location.latitude, longitude: location.longitude };
+        
+        // Let React state update locally immediately
+        predictAndReact(next, loc).then((pred) => {
+           // Now push to Supabase Vitals Table
+           if (patientRecordId) {
+             supabase.from('vitals').insert([{
+                patient_id: patientRecordId,
+                heart_rate: next.heart_rate,
+                spo2: next.spo2,
+                temperature: next.temperature_c,
+                risk_score: pred?.risk_score || 0
+             }]).catch(err => console.error("Supabase vitals upload error:", err));
+             
+             if (loc.latitude) {
+               supabase.from('locations').insert([{
+                  patient_id: patientRecordId,
+                  lat: loc.latitude,
+                  lng: loc.longitude,
+                  accuracy: 10
+               }]).catch(err => console.error("Supabase locations upload error:", err));
+             }
+           }
+        });
+        
         return next;
       });
     }, 2500);
     return () => clearInterval(interval);
-  }, [predictAndReact, location.latitude, location.longitude]);
+  }, [role, patientRecordId, predictAndReact, location.latitude, location.longitude]);
+
+  // RECEIVER LOGIC: Family and Doctor listen to Supabase Realtime changes
+  useEffect(() => {
+    if (role !== 'family' && role !== 'doctor') return;
+    
+    // Subscribe to new Vitals
+    const vitalsSub = supabase.channel('realtime-vitals')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'vitals' }, (payload) => {
+         const newVitals = {
+            heart_rate: payload.new.heart_rate,
+            spo2: payload.new.spo2,
+            temperature_c: payload.new.temperature,
+            medical_history: 0,
+            lifestyle_score: 8
+         };
+         setVitals(newVitals);
+         predictAndReact(newVitals, location); 
+      }).subscribe();
+
+    // Subscribe to Emergency Alerts
+    const alertsSub = supabase.channel('realtime-alerts')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'emergency_alerts' }, (payload) => {
+         setEmergencyActive(true);
+         pushToast(`alert-${Date.now()}`, role, `URGENT ALERT: Patient in Distress!`, `Triggered by: ${payload.new.triggered_by}. Severity: ${payload.new.severity}`);
+         // Sound Native Notification
+         NotificationService.schedule(
+           "🚨 PATIENT EMERGENCY",
+           `A linked patient has triggered a high severity alert!`,
+           { type: "remote_emergency" }
+         );
+      }).subscribe();
+
+    return () => {
+      supabase.removeChannel(vitalsSub);
+      supabase.removeChannel(alertsSub);
+    };
+  }, [role, location, pushToast, predictAndReact]);
 
   const simulateEmergency = useCallback(() => {
     wasHighRisk.current = false;
     forceAbnormal.current = true;
-    setVitals((v) => {
-      const vit = {
-        ...v,
-        heart_rate: 130,
-        spo2: 85,
-        temperature_c: 39.1,
-      };
-      predictAndReact(vit, {
-        latitude: location.latitude ?? 40.7128,
-        longitude: location.longitude ?? -74.006,
-      });
-      return vit;
-    });
-  }, [predictAndReact, location.latitude, location.longitude]);
+  }, []);
 
   const resumeSimulation = useCallback(() => {
     forceAbnormal.current = false;
@@ -487,7 +483,6 @@ export function HealthProvider({ children }) {
     simulateEmergency,
     resumeSimulation,
     setVitals,
-    // AI Recommendations
     recommendations,
     activePopup,
     dismissPopup,
