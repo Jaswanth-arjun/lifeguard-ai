@@ -343,6 +343,21 @@ export function HealthProvider({ children }) {
         { type: "emergency", vitals: vit, pred }
       );
 
+      // Trigger Twilio/WhatsApp cloud API alert
+      if (familyPhoneRef.current) {
+        try {
+          const msg = buildFamilyEmergencyMessage(vit, loc, h, pred);
+          sendFamilyAlertCloud({
+            toPhone: familyPhoneRef.current,
+            message: msg || `🚨 URGENT EMERGENCY: High Risk Detected! HR: ${vit.heart_rate} BPM, SpO2: ${vit.spo2}%. Please track live location immediately.`,
+            latitude: lat,
+            longitude: lng
+          }).catch(err => console.error("[HealthContext] Async WhatsApp Delivery Error:", err));
+        } catch (e) {
+          console.error("[HealthContext] Failed to format or send WhatsApp alert:", e);
+        }
+      }
+
       // Insert into Supabase Alerts Table so family/doctors receive the push naturally
       if (role === 'patient' && patientRecordId) {
         supabase.from('emergency_alerts').insert([{
