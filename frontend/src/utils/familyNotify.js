@@ -1,17 +1,10 @@
 /**
  * Builds the Family Tracker URL for the current deployment.
- * Flask static demo: http://host/demo/#family  ·  React (Vite): http://host/family
+ * Force cloud link for Android APK reliability.
  */
 export function getFamilyTrackerUrl() {
-  if (typeof window === "undefined") return "";
-  const { origin, pathname } = window.location;
-  if (pathname.includes("/demo")) {
-    const base = pathname.endsWith("/") ? pathname : `${pathname}/`;
-    return `${origin}${base}#family`;
-  }
-  return `${origin}/family`;
+  return "https://lifeguard-ai-arpd.onrender.com/#family";
 }
-
 export function digitsOnlyPhone(input) {
   return String(input || "").replace(/\D/g, "");
 }
