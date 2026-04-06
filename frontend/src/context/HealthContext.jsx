@@ -425,11 +425,14 @@ export function HealthProvider({ children }) {
   useEffect(() => { locationRef.current = location; }, [location]);
   useEffect(() => { predictAndReactRef.current = predictAndReact; }, [predictAndReact]);
 
-  // ── SIMULATOR: runs for all roles to keep UI alive ──
+  // ── PATIENT-ONLY SIMULATOR: simulate vitals, predict, upload to Supabase ──
   useEffect(() => {
-    if (!authReady) return;
+    if (!authReady || role !== 'patient') {
+      console.log("[HealthContext] Simulation skipped (role:", role, ")");
+      return;
+    }
 
-    console.log("[HealthContext] ✅ Starting vitals simulation for UI.");
+    console.log("[HealthContext] ✅ Starting PATIENT vitals simulation.");
 
     const interval = setInterval(() => {
       setVitals((v) => {
@@ -447,10 +450,8 @@ export function HealthProvider({ children }) {
 
         const loc = { latitude: locationRef.current.latitude, longitude: locationRef.current.longitude };
 
-        // Fire prediction — the lock inside predictAndReact prevents overlapping calls
         predictAndReactRef.current(next, loc).then((pred) => {
-          // Upload to Supabase only if we are a patient with a valid record
-          if (role === 'patient' && patientRecordId && pred) {
+          if (patientRecordId && pred) {
             supabase.from('vitals').insert([{
               patient_id: patientRecordId,
               heart_rate: next.heart_rate,
@@ -509,7 +510,7 @@ export function HealthProvider({ children }) {
         }
       });
 
-    // Subscribe to Vitals
+    // Subscribe to Vitals — family/doctor get the EXACT same values the patient uploaded
     const vitalsSub = supabase.channel(`realtime-vitals-${patientRecordId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'vitals', filter: filterString }, (payload) => {
         const newVitals = {
@@ -520,11 +521,14 @@ export function HealthProvider({ children }) {
           lifestyle_score: 8
         };
         setVitals(newVitals);
-        // Update prediction from the risk_score directly — don't call the API again
+        // Update prediction + chart history from the exact risk_score the patient computed
         if (payload.new.risk_score != null) {
           const score = payload.new.risk_score;
           const category = score >= 70 ? "High Risk" : score >= 40 ? "Warning" : "Normal";
           setPrediction({ risk_score: score, category });
+          const t = tick.current++;
+          setHrHistory((h) => [...h.slice(-59), { t, hr: payload.new.heart_rate }]);
+          setRiskHistory((h) => [...h.slice(-59), { t, risk: score }]);
         }
       }).subscribe();
 
