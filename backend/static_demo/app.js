@@ -55,7 +55,7 @@
     raw = String(raw).trim();
     try {
       localStorage.setItem(FAMILY_PHONE_KEY, raw);
-    } catch (e) {}
+    } catch (e) { }
     if (input) input.value = raw;
     var digits = digitsOnlyPhone(raw);
     var trackerUrl = getFamilyTrackerUrl();
@@ -91,10 +91,10 @@
       if (cloud.ok) {
         toast(
           "<strong>Family notified (WhatsApp — cloud)</strong><div>Sent automatically via " +
-            (cloud.provider || "provider") +
-            ". " +
-            (cloud.message_sid || cloud.message_id || "") +
-            "</div>"
+          (cloud.provider || "provider") +
+          ". " +
+          (cloud.message_sid || cloud.message_id || "") +
+          "</div>"
         );
       } else if (cloud.error === "not_configured") {
         toast(
@@ -104,16 +104,16 @@
       } else {
         toast(
           "<strong>WhatsApp cloud send failed</strong><div>" +
-            (cloud.detail || cloud.error || "Error") +
-            "</div>"
+          (cloud.detail || cloud.error || "Error") +
+          "</div>"
         );
         setModalSmsBackup(digits, msg, "Optional backup:");
       }
     } else {
       toast(
         "<strong>Family phone missing</strong><div>Add 10+ digits with country code for cloud WhatsApp. Tracker: " +
-          trackerUrl +
-          "</div>"
+        trackerUrl +
+        "</div>"
       );
     }
   }
@@ -139,6 +139,7 @@
   const hrSeries = [];
   const riskSeries = [];
   let tick = 0;
+  let emergencyTriggerPending = false;
 
   function clamp(n, lo, hi) {
     return Math.max(lo, Math.min(hi, n));
@@ -269,7 +270,7 @@
         var b = L.latLngBounds(coords);
         m.fitBounds(b, { padding: [36, 36], maxZoom: 14 });
         if (map2) map2.fitBounds(b, { padding: [36, 36], maxZoom: 14 });
-      } catch (e) {}
+      } catch (e) { }
     }
   }
 
@@ -283,7 +284,7 @@
       patientMarker2.setLatLng([plat, plng]);
       var hashRole = window.location.hash.replace("#", "");
       if (hashRole === "family" && !emergencyActive) {
-          map2.setView([plat, plng]);
+        map2.setView([plat, plng]);
       }
     }
     if (hospital) {
@@ -337,9 +338,9 @@
       }
       lastCoords = coords;
       setRouteOnMap(map, coords, lat, lng);
-      
+
       localStorage.setItem("lifeguardEmergencyTrigger", JSON.stringify({
-          v: v, pred: pred, lat: lat, lng: lng, t: Date.now()
+        v: v, pred: pred, lat: lat, lng: lng, t: Date.now()
       }));
     } catch (e) {
       console.warn(e);
@@ -353,6 +354,7 @@
       ", " +
       lng.toFixed(5);
     await notifyFamilyOnEmergency(v, pred, lat, lng);
+    emergencyTriggerPending = false;
     document.getElementById("modal").classList.add("show");
     emergencyActive = true;
     renderSidePanels();
@@ -372,12 +374,14 @@
       updateChart();
 
       if (prediction.category === "High Risk") {
-        if (!wasHighRisk) {
+        if (emergencyTriggerPending && !wasHighRisk) {
           wasHighRisk = true;
+          emergencyTriggerPending = false;
           await runEmergency(prediction, v);
         }
       } else {
         wasHighRisk = false;
+        emergencyTriggerPending = false;
         emergencyActive = false;
         document.getElementById("modal").classList.remove("show");
         hospital = null;
@@ -398,18 +402,18 @@
       }
       renderSidePanels();
       updateMarkers();
-      
+
       var hashRole = window.location.hash.replace("#", "");
       if (hashRole === "patient" || hashRole === "") {
-          localStorage.setItem("lifeguardState", JSON.stringify({
-              vitals: vitals,
-              prediction: prediction,
-              loc: loc,
-              hospital: hospital,
-              emergencyActive: emergencyActive,
-              lastCoords: lastCoords,
-              t: Date.now()
-          }));
+        localStorage.setItem("lifeguardState", JSON.stringify({
+          vitals: vitals,
+          prediction: prediction,
+          loc: loc,
+          hospital: hospital,
+          emergencyActive: emergencyActive,
+          lastCoords: lastCoords,
+          t: Date.now()
+        }));
       }
     } catch (e) {
       err.textContent = "API error: " + e.message + " — is Flask running on port 5000?";
@@ -548,6 +552,7 @@
 
   document.getElementById("btn-sim").addEventListener("click", function () {
     wasHighRisk = false;
+    emergencyTriggerPending = true;
     forceAbnormal = true;
     vitals = { heart_rate: 130, spo2: 85, temperature_c: 39.1 };
     predictAndReact(vitals);
@@ -557,11 +562,11 @@
   if (famInput) {
     try {
       famInput.value = localStorage.getItem(FAMILY_PHONE_KEY) || "";
-    } catch (e) {}
+    } catch (e) { }
     famInput.addEventListener("input", function () {
       try {
         localStorage.setItem(FAMILY_PHONE_KEY, famInput.value.trim());
-      } catch (e2) {}
+      } catch (e2) { }
       updateFamilyPhoneUi();
     });
   }
@@ -571,6 +576,7 @@
 
   document.getElementById("btn-resume").addEventListener("click", function () {
     forceAbnormal = false;
+    emergencyTriggerPending = false;
     wasHighRisk = false;
     emergencyActive = false;
     document.getElementById("modal").classList.remove("show");
@@ -635,7 +641,7 @@
   setInterval(function () {
     var hashRole = window.location.hash.replace("#", "");
     if (hashRole !== "patient" && hashRole !== "") return;
-    
+
     if (forceAbnormal) {
       vitals = { heart_rate: 130, spo2: 85, temperature_c: 38.9 };
     } else {
@@ -655,16 +661,16 @@
       // Hide the tab selector so it looks like a separate website
       var tabsNav = document.querySelector(".tabs");
       if (tabsNav) tabsNav.style.display = "none";
-      
+
       document.getElementById("panel-patient").classList.toggle("panel-hidden", hash !== "patient");
       document.getElementById("panel-family").classList.toggle("panel-hidden", hash !== "family");
       document.getElementById("panel-doctor").classList.toggle("panel-hidden", hash !== "doctor");
-      
+
       if (hash === "family" && map2) setTimeout(function () { map2.invalidateSize(); }, 200);
       if (hash === "patient" && map) setTimeout(function () { map.invalidateSize(); }, 200);
     }
   }
-  
+
   applyHashRouting();
   window.addEventListener("hashchange", applyHashRouting);
 
@@ -673,9 +679,9 @@
       var d = JSON.parse(e.newValue);
       var hashRole = window.location.hash.replace("#", "");
       if (hashRole === "family") {
-          toast("<strong>Family Alert</strong><div>" + d.pred.category + " score " + d.pred.risk_score + ". GPS: " + d.lat.toFixed(5) + ", " + d.lng.toFixed(5) + "</div>", "family");
+        toast("<strong>Family Alert</strong><div>" + d.pred.category + " score " + d.pred.risk_score + ". GPS: " + d.lat.toFixed(5) + ", " + d.lng.toFixed(5) + "</div>", "family");
       } else if (hashRole === "doctor") {
-          toast("<strong>Doctor / Hospital Alert</strong><div>Incoming emergency — HR " + d.v.heart_rate + ", SpO₂ " + d.v.spo2 + "%.</div>", "doctor");
+        toast("<strong>Doctor / Hospital Alert</strong><div>Incoming emergency — HR " + d.v.heart_rate + ", SpO₂ " + d.v.spo2 + "%.</div>", "doctor");
       }
     }
     if (e.key === "lifeguardState" && e.newValue) {
@@ -686,24 +692,24 @@
       hospital = s.hospital;
       emergencyActive = s.emergencyActive;
       lastCoords = s.lastCoords;
-      
+
       updateVitalsUI();
       renderSidePanels();
-      
+
       if (hospital && map2 && hospitalMarker2) {
-          hospitalMarker2.setLatLng([hospital.latitude, hospital.longitude]);
-          hospitalMarker2.addTo(map2);
+        hospitalMarker2.setLatLng([hospital.latitude, hospital.longitude]);
+        hospitalMarker2.addTo(map2);
       } else if (!hospital && map2 && hospitalMarker2) {
-          map2.removeLayer(hospitalMarker2);
+        map2.removeLayer(hospitalMarker2);
       }
-      
+
       updateMarkers();
-      
+
       if (emergencyActive && lastCoords) {
-          setRouteOnMap(map, lastCoords, loc.lat, loc.lng);
+        setRouteOnMap(map, lastCoords, loc.lat, loc.lng);
       } else {
-          if (routeLayer && map) { map.removeLayer(routeLayer); routeLayer = null; }
-          if (routeLayer2 && map2) { map2.removeLayer(routeLayer2); routeLayer2 = null; }
+        if (routeLayer && map) { map.removeLayer(routeLayer); routeLayer = null; }
+        if (routeLayer2 && map2) { map2.removeLayer(routeLayer2); routeLayer2 = null; }
       }
     }
   });
