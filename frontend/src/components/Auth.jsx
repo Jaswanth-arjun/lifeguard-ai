@@ -10,6 +10,7 @@ export default function Auth() {
   const [role, setRole] = useState('patient');
   const [isSignUp, setIsSignUp] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [familyPhone, setFamilyPhone] = useState('');
   const navigate = useNavigate();
 
   const handleAuth = async (e) => {
@@ -32,6 +33,14 @@ export default function Auth() {
         });
 
         if (authError) throw authError;
+
+        if (role === 'patient' && familyPhone) {
+          try {
+            localStorage.setItem('lifeguard_family_phone', familyPhone);
+          } catch (e) {
+            console.error("Local storage error:", e);
+          }
+        }
 
         alert('Verification email sent! Please check your inbox and click the link to confirm your account before logging in.');
 
@@ -103,6 +112,18 @@ export default function Auth() {
                 <option value="doctor" style={{ color: 'black' }}>Doctor</option>
               </select>
             </div>
+            {role === 'patient' && (
+              <div>
+                <label style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Emergency Contact Phone (WhatsApp)</label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 919876543210"
+                  value={familyPhone}
+                  onChange={(e) => setFamilyPhone(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', marginTop: '0.25rem' }}
+                />
+              </div>
+            )}
           </>
         )}
 

@@ -208,25 +208,8 @@ export default function PatientDashboard() {
         </div>
       </div>
 
-      {/* ── Family Emergency Contact ── */}
+      {/* ── Settings & Connections ── */}
       <div className="contact-grid animate-in delay-4">
-        <div className="card">
-          <div className="section-header">
-            <span className="icon">📱</span>
-            Emergency Contact
-          </div>
-          <p className="contact-hint">
-            WhatsApp alert triggered automatically on emergency.
-          </p>
-          <input
-            id="family-phone"
-            type="tel"
-            placeholder="e.g. 919876543210"
-            className="tel-input"
-            value={familyPhone}
-            onChange={(e) => setFamilyPhone(e.target.value)}
-          />
-        </div>
 
         <div className="card">
           <div className="section-header">

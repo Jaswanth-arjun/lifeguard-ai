@@ -513,15 +513,15 @@ export function HealthProvider({ children }) {
     predictAndReactRef.current = predictAndReact;
   }, [predictAndReact]);
 
-  // ── PATIENT SENDER: simulate vitals + push to Supabase ──
-  // Runs as soon as role resolves to 'patient' — does NOT wait for patientRecordId
+  // ── SENDER / SIMULATOR: simulate vitals + push to Supabase (if patient) ──
+  // Runs to keep UI 'live' for all roles, but ONLY uploads if role === 'patient'
   useEffect(() => {
-    if (!authReady || role !== 'patient') {
-      console.log("[HealthContext] Patient simulation NOT starting. authReady:", authReady, "role:", role);
+    if (!authReady) {
+      console.log("[HealthContext] Simulation NOT starting. authReady:", authReady);
       return;
     }
 
-    console.log("[HealthContext] ✅ Starting patient vitals simulation. patientRecordId:", patientRecordId);
+    console.log("[HealthContext] ✅ Starting vitals simulation for UI.");
 
     const interval = setInterval(() => {
       setVitals((v) => {
@@ -544,8 +544,8 @@ export function HealthProvider({ children }) {
         
         // Predict locally for UI
         predictAndReactRef.current(next, loc).then((pred) => {
-           // Upload to Supabase only if we have a patientRecordId
-           if (patientRecordId) {
+           // Upload to Supabase only if we are a patient with a valid record
+           if (role === 'patient' && patientRecordId) {
              supabase.from('vitals').insert([{
                 patient_id: patientRecordId,
                 heart_rate: next.heart_rate,

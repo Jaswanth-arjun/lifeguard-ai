@@ -144,32 +144,43 @@ export default function FamilyTracker() {
               Live Location
             </div>
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.85rem", color: "var(--text-bright)" }}>
-              {lat != null && lng != null ? (
-                <>
-                  <div>{lat.toFixed(5)},</div>
-                  <div>{lng.toFixed(5)}</div>
-                </>
+              {emergencyActive ? (
+                lat != null && lng != null ? (
+                  <>
+                    <div>{lat.toFixed(5)},</div>
+                    <div>{lng.toFixed(5)}</div>
+                  </>
+                ) : (
+                  <span style={{ color: "var(--muted)" }}>Waiting for GPS…</span>
+                )
               ) : (
-                <span style={{ color: "var(--muted)" }}>Waiting for GPS…</span>
+                <span style={{ color: "var(--muted)" }}>Hidden (Privacy Mode)</span>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="section-header">
-          <span className="icon">🗺️</span>
-          Live Map
+      {emergencyActive ? (
+        <div className="card">
+          <div className="section-header">
+            <span className="icon">🗺️</span>
+            Emergency Route
+          </div>
+          <PatientMap
+            className="tall"
+            patientLat={lat}
+            patientLng={lng}
+            hospital={hospital}
+            routeCoords={routeCoords}
+          />
         </div>
-        <PatientMap
-          className="tall"
-          patientLat={lat}
-          patientLng={lng}
-          hospital={hospital}
-          routeCoords={routeCoords}
-        />
-      </div>
+      ) : (
+        <div className="card" style={{ textAlign: "center", padding: "2rem", color: "var(--muted)" }}>
+          <span style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem", opacity: 0.5 }}>🛡️</span>
+          Location sharing is disabled for privacy until an emergency alert is triggered.
+        </div>
+      )}
     </div>
   );
 }
