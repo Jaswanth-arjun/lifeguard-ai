@@ -225,8 +225,17 @@ export function HealthProvider({ children }) {
   // ── Emergency side effects (runs ONCE per emergency) ──
   const runEmergencySideEffects = useCallback(
     async (pred, vit, loc) => {
-      const lat = loc.latitude ?? 40.7128;
-      const lng = loc.longitude ?? -74.006;
+      // Capture concrete values immediately to prevent any stale/undefined issues
+      const hr = vit?.heart_rate ?? 130;
+      const sp = vit?.spo2 ?? 85;
+      const tc = vit?.temperature_c ?? 38.9;
+      const riskScore = pred?.risk_score ?? 0;
+      const riskCat = pred?.category ?? "High Risk";
+      const lat = loc?.latitude ?? 40.7128;
+      const lng = loc?.longitude ?? -74.006;
+      const trackerUrl = getFamilyTrackerUrl();
+
+      console.log("[Emergency] Vitals snapshot:", { hr, sp, tc, riskScore, riskCat, lat, lng });
 
       pushToast(`patient-${Date.now()}`, "patient", "Patient alert", "Check on-screen emergency instructions.");
 
@@ -252,25 +261,32 @@ export function HealthProvider({ children }) {
         const hospitalName = h?.name || "the nearest hospital";
         NotificationService.schedule(
           "🚨 Emergency Alert",
-          `High risk detected! HR: ${vit.heart_rate} BPM. Seek immediate care at ${hospitalName}.`,
-          { type: "emergency", vitals: vit, pred }
+          `High risk detected! HR: ${hr} BPM. Seek immediate care at ${hospitalName}.`,
+          { type: "emergency" }
         );
       }
 
       // WhatsApp — ONLY if patient explicitly clicked Simulate Emergency
       if (familyPhoneRef.current && role === 'patient' && forceAbnormal.current) {
-        try {
-          const msg = buildFamilyEmergencyMessage({
-            vitals: vit, pred, lat, lng, trackerUrl: getFamilyTrackerUrl()
-          });
-          sendFamilyAlertCloud({
-            toPhone: familyPhoneRef.current,
-            message: msg || `🚨 URGENT EMERGENCY: High Risk Detected! HR: ${vit.heart_rate} BPM, SpO2: ${vit.spo2}%. Please track live location immediately.`,
-            latitude: lat, longitude: lng
-          }).catch(err => console.error("[HealthContext] WhatsApp Error:", err));
-        } catch (e) {
-          console.error("[HealthContext] WhatsApp format error:", e);
-        }
+        // Build message with concrete captured values — no references to objects that could be stale
+        const latStr = typeof lat === "number" ? lat.toFixed(5) : String(lat);
+        const lngStr = typeof lng === "number" ? lng.toFixed(5) : String(lng);
+        const whatsappMsg = [
+          "🚨 EMERGENCY — Patient health alert (AI monitoring)",
+          `Status: ${riskCat} (risk score ${riskScore})`,
+          `Vitals: HR ${hr} bpm, SpO₂ ${sp}%, Temp ${tc}°C`,
+          `Last known GPS: ${latStr}, ${lngStr}`,
+          `Open Family Tracker (live map): ${trackerUrl}`,
+        ].join("\n");
+
+        console.log("[Emergency] WhatsApp message:", whatsappMsg);
+
+        sendFamilyAlertCloud({
+          toPhone: familyPhoneRef.current,
+          message: whatsappMsg,
+          latitude: lat,
+          longitude: lng
+        }).catch(err => console.error("[HealthContext] WhatsApp Error:", err));
       }
 
       // Supabase alert — ONLY if patient explicitly clicked Simulate Emergency
